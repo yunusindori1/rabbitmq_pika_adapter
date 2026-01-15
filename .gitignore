@@ -1,0 +1,41 @@
+# Local config/secrets
+/config.yml
+/.env
+
+# JetBrains / PyCharm
+.idea/
+*.iml
+/.idea/copilot.data.migration.ask.xml
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Build artifacts / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.whl
+
+# Coverage / test reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+junit.xml
+
+# OS files
+.DS_Store
+Thumbs.db
