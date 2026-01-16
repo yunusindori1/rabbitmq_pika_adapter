@@ -12,10 +12,10 @@ Core API:
 
 Consumers support two acknowledgement modes:
 
-- `auto_ack=True` (legacy default): at-most-once delivery. Messages are considered acknowledged on delivery. If your callback raises or the process
-  crashes mid-processing, RabbitMQ will not redeliver that message.
-- `auto_ack=False`: at-least-once delivery. The library will ack *after* your callback returns successfully, and nack/requeue on exception. Your
+- `auto_ack=False` (default): at-least-once delivery. The library will ack *after* your callback returns successfully, and nack/requeue on exception. Your
   handler should be idempotent because messages may be redelivered.
+- `auto_ack=True` (legacy): at-most-once delivery. Messages are considered acknowledged on delivery. If your callback raises or the process
+  crashes mid-processing, RabbitMQ will not redeliver that message.
 
 Recommendation: for most "work queue" style consumers, use `auto_ack=False`.
 
@@ -52,7 +52,11 @@ See `examples/usage.py` and `docs/USAGE.md`.
 
 - High-throughput sync publish+consume demo (prints stats for both):
 
-    python -m examples.usage throughput
+    python examples/usage.py throughput
+
+Notes:
+- The repo uses a `src/` layout. If you want to run examples without installing the package, `examples/usage.py` will
+  automatically add `src/` to `sys.path`.
 
 ## Testing
 
@@ -81,7 +85,10 @@ Then run:
 
 ## Publishing to PyPI
 
-This repo includes a GitHub Actions release workflow that publishes on tags like `v0.1.0`.
+This repo publishes from GitHub Actions:
+
+- Pushes to `develop` publish to TestPyPI.
+- Pushes to `release` publish to PyPI.
 
 Manual build/publish:
 
