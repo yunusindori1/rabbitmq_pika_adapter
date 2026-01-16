@@ -51,6 +51,14 @@ dev = [
 "Repository" = "https://github.com/yunusindori1/rabbitmq_pika_adapter"
 "Issues" = "https://github.com/yunusindori1/rabbitmq_pika_adapter/issues"
 
+# ---- Packaging (src layout) ----
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mq_adapters*"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra --strict-config --strict-markers"
@@ -75,15 +83,13 @@ explicit_package_bases = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
-# Explicit list of library modules (avoid picking up demo/test scripts under mq_adapters).
+# Explicit list of library modules (avoid picking up demo/test scripts).
 files = [
-  "__init__.py",
-  "mq_adapters/__init__.py",
-  "mq_adapters/RabbitMQAdapter.py",
-  "mq_adapters/client.py",
-  "mq_adapters/helper_functions.py",
-  "mq_adapters/publisher_pool.py",
-  "mq_adapters/async_adapter.py",
+  "src/mq_adapters/__init__.py",
+  "src/mq_adapters/client.py",
+  "src/mq_adapters/helper_functions.py",
+  "src/mq_adapters/publisher_pool.py",
+  "src/mq_adapters/async_adapter.py",
 ]
 
 # Third-party packages often lack stubs; keep noise low.

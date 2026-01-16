@@ -52,6 +52,13 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -71,6 +78,15 @@ jobs:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -85,7 +101,7 @@ jobs:
           python -m pip install twine
           python -m twine upload dist/*
 
-      - name: Create git tag (optional)
+      - name: Create git tag (best-effort)
         env:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
@@ -94,10 +110,9 @@ jobs:
           git tag -a "v${VERSION}" -m "Release v${VERSION}" || true
           git push origin "v${VERSION}" || true
 
-      - name: Create PR release -> master
+      - name: Create PR release -> master (best-effort)
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           gh pr create --base master --head release --title "Release v${VERSION} -> master" --body "Automated PR created after publishing v${VERSION} to PyPI." || true
-
