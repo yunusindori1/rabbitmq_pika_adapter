@@ -20,6 +20,19 @@ import threading
 import time
 from typing import Dict
 
+# Allow running this script directly from the repo without installing the package.
+# In normal usage (installed package), this block is a no-op.
+try:
+    import mq_adapters  # noqa: F401
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    src_dir = repo_root / "src"
+    if src_dir.exists():
+        sys.path.insert(0, str(src_dir))
+
 from mq_adapters import RabbitMQClient
 from mq_adapters.publisher_pool import PublisherPool
 from mq_adapters.sync_adapter import Listener
