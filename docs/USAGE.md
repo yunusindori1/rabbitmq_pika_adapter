@@ -1,4 +1,4 @@
-rabbit_mq_client — Usage and migration guide
+rabbitmq-pika-adapter — Usage and migration guide
 
 This document describes how to use the current API (PublisherPool/Listener + async equivalents) with explicit configuration and
 how to migrate from the previous setup that relied on `yi_config_starter` and `config.yml`.
@@ -19,15 +19,15 @@ Acknowledgement semantics (`auto_ack`)
 
 `Listener` and `AsyncListener` support two acknowledgement modes:
 
-- `auto_ack=True` (default, legacy): **at-most-once** delivery.
-    - Messages are considered acknowledged on delivery.
-    - If your callback raises or your process crashes during processing, RabbitMQ will **not** redeliver that message.
-    - Use this only for truly fire-and-forget workloads (telemetry, best-effort notifications).
-
-- `auto_ack=False`: **at-least-once** delivery.
+- `auto_ack=False` (default): **at-least-once** delivery.
     - The library will ack **after** your callback returns successfully.
     - If your callback raises an exception, the library will nack with `requeue=True`.
     - Your handler should be **idempotent** (messages may be delivered more than once).
+
+- `auto_ack=True` (legacy): **at-most-once** delivery.
+    - Messages are considered acknowledged on delivery.
+    - If your callback raises or your process crashes during processing, RabbitMQ will **not** redeliver that message.
+    - Use this only for truly fire-and-forget workloads (telemetry, best-effort notifications).
 
 Sync `Listener` specifics:
 
@@ -72,7 +72,7 @@ print('publisher stats:', pool.stats_snapshot())
 ```python
 import time
 
-from mq_adapters.RabbitMQAdapter import Listener
+from mq_adapters.sync_adapter import Listener
 
 params = {
     'server': 'localhost',
@@ -151,13 +151,13 @@ client.close()
 
 The repo includes an example that publishes many messages and consumes them while printing stats:
 
-    python -m examples.usage throughput
+    python examples/usage.py throughput
 
-5) Async (aio-pika) — recommended for many producers/consumers
+5) Async (aio-pika) — optional
 
 Install:
 
-    pip install rabbit-mq-client[async]
+    pip install rabbitmq-pika-adapter[async]
 
 Example:
 
