@@ -37,9 +37,9 @@ class Listener(ApplicationThread):
     """Thread-based consumer for a given message_type.
 
     Acknowledgements (`auto_ack`):
-        - `auto_ack=True` (default, legacy): **at-most-once** delivery. Messages are considered acked on delivery.
+        - `auto_ack=True` (legacy): **at-most-once** delivery. Messages are considered acked on delivery.
           Callback exceptions will be logged, but they will NOT trigger redelivery.
-        - `auto_ack=False`: **at-least-once** delivery. The library will ack after your callback returns successfully.
+        - `auto_ack=False` (default): **at-least-once** delivery. The library will ack after your callback returns successfully.
           If your callback raises, the library will nack with `requeue=True`.
 
     Key behavior:
@@ -67,7 +67,7 @@ class Listener(ApplicationThread):
             prefetch_count: int = -1,
             apply_prefetch_to_all_channels: bool = False,
             verbose: bool = False,
-            auto_ack: bool = True,
+            auto_ack: bool = False,
             connection_factory: Optional[Callable[[], Any]] = None,
             connection_params: Optional[Dict[str, Any]] = None,
             message_type_map: Optional[MessageTypeMap] = None,
@@ -86,7 +86,7 @@ class Listener(ApplicationThread):
         :param callback: The callback function is called with the params: channel, method, properties, body,
         where body is bytes.
         :param predefined_queue:
-        :param auto_ack: Whether to auto-ack messages on delivery (default True to preserve backwards compatibility)
+        :param auto_ack: Whether to auto-ack messages on delivery (default False)
         :param connection_factory: Optional callable that returns a pika.BlockingConnection when called.
         :param connection_params: Optional dict containing required connection values (server, port, username,
         password, vhost)
@@ -481,7 +481,7 @@ class Listener(ApplicationThread):
                     self.__logger.info('Reconnect attempt %d; backing off %.2fs', self.__loop_failures, delay)
                     time.sleep(delay)
 
-        print('Exited')
+        self.__logger.info("Exited")
 
     def stop_listening(self) -> None:
         """Stop consuming and close channel/connection best-effort."""
@@ -559,7 +559,7 @@ class Listener(ApplicationThread):
                 except Exception:
                     pass
         except Exception as e:
-            print(
+            self.__logger.warning(
                 f'Exception caught during stopping listening on channel: {e}, might be ok if the channel is already '
                 f'stopped')
 
