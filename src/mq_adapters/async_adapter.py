@@ -274,8 +274,8 @@ class AsyncListener:
     """Async consumer using aio-pika.
 
     Acknowledgements (`auto_ack`):
-        - `auto_ack=True` (default, legacy): **at-most-once** delivery. Messages are considered acked on delivery.
-        - `auto_ack=False`: **at-least-once** delivery. The listener acks after your callback completes; on exception it nacks with requeue=True.
+        - `auto_ack=True` (legacy): **at-most-once** delivery. Messages are considered acked on delivery.
+        - `auto_ack=False` (default): **at-least-once** delivery. The listener acks after your callback completes; on exception it nacks with requeue=True.
 
     For `auto_ack=False`, callbacks should be idempotent (messages can be redelivered).
     """
@@ -288,7 +288,7 @@ class AsyncListener:
             predefined_queue: bool = False,
             prefetch_count: int = -1,
             verbose: bool = False,
-            auto_ack: bool = True,
+            auto_ack: bool = False,
             connection_params: Optional[Dict[str, Any]] = None,
             message_type_map: Optional[Dict[str, Any]] = None,
             connection_factory: Optional[AsyncConnectionFactory] = None,
