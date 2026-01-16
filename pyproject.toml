@@ -65,6 +65,7 @@ addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+pythonpath = ["src"]
 markers = [
     "integration: integration tests that require live RabbitMQ",
 ]
