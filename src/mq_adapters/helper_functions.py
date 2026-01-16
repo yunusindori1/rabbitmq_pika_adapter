@@ -6,9 +6,8 @@ This module contains:
 - shared, lightweight type aliases for public APIs
 """
 
-import inspect
-import os
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
@@ -41,79 +40,6 @@ def default_serializer(message: MessageBody) -> bytes:
         return message.encode("utf-8")
     # dict
     return json.dumps(message).encode("utf-8")
-
-
-def get_method_name_as_string(func: Callable[..., Any]) -> str:
-    """Return a stable string name for a function or bound method.
-
-    For methods the format is: "SomeClass.method".
-    For module-level functions the format is: "function".
-
-    Args:
-        func: A function or bound method.
-
-    Returns:
-        The resolved function name.
-
-    Raises:
-        Exception: If `func` is not a function or method.
-    """
-    if inspect.ismethod(func):
-        return ".".join([get_class_that_defined_method(func).__name__, func.__name__])
-    elif inspect.isfunction(func):
-        return func.__name__
-    else:
-        raise Exception(f'{func} cannot be resolved to an invokable')
-
-
-def get_class_that_defined_method(meth: Callable[..., Any]) -> Any:
-    """Best-effort utility to find the class/module that defines a function.
-
-    This is used primarily for logging and debugging.
-
-    Args:
-        meth: A function or bound method.
-
-    Returns:
-        The class or module object that defined the callable, or None.
-    """
-    if inspect.ismethod(meth):
-        print('this is a method')
-        for cls in inspect.getmro(meth.__self__.__class__):
-            if meth.__name__ in cls.__dict__:
-                return cls
-    if inspect.isfunction(meth):
-        print('this is a function')
-        return getattr(inspect.getmodule(meth),
-                       meth.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0],
-                       None)
-    print('this is neither a function nor a method')
-    return None  # not required since None would have been implicitly returned anyway
-
-
-def get_rabbit_connection(vhost_name: str, server: str, port: int, username: str, password: str) -> pika.BlockingConnection:
-    """Connect to RabbitMQ using pika.BlockingConnection.
-
-    Note: This is a legacy convenience helper. Prefer using `RabbitConnectionFactory` or
-    `make_connection_factory_from_params` for dependency injection and testability.
-
-    Args:
-        vhost_name: The vhost to connect to.
-        server: RabbitMQ host.
-        port: RabbitMQ port.
-        username: Username.
-        password: Password.
-
-    Returns:
-        A connected pika.BlockingConnection.
-    """
-    if not vhost_name:
-        raise Exception("vhost name cannot be empty")
-    credentials = pika.PlainCredentials(username, password)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=server, port=int(port), virtual_host=vhost_name, credentials=credentials,
-                                  channel_max=100, heartbeat=60, blocked_connection_timeout=300))
-    return connection
 
 
 # --- New helpers: ConnectionFactory and env loader ---
@@ -216,12 +142,6 @@ def load_connection_params_from_env(prefix: str = 'RABBITMQ') -> Optional[Connec
     if cm:
         params['channel_max'] = int(cm)
     return params
-
-
-def get_rabbit_connection_from_params(params: ConnectionParams) -> pika.BlockingConnection:
-    """Create a connection directly from params dict."""
-    factory = make_connection_factory_from_params(params)
-    return factory()
 
 
 @dataclass
