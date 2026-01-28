@@ -249,7 +249,110 @@ async def async_example(run_seconds: int = 5):
         await sender.stop()
 
 
+# ------------------- Async high throughput publish + consume example -------------------
+async def async_high_throughput_publish_and_consume(
+    total_messages: int = 50000,
+    concurrency: int = 500,
+    prefetch_count: int = 1000,
+    confirm_delivery: bool = False,
+    max_wait_seconds: int = 30,
+):
+    """High-throughput async demo: publish N messages and consume them, then print stats.
+
+    Goals:
+      - Bounded in-flight publishing via a semaphore (prevents OOM / broker overload)
+      - A clear stop condition: wait until observed == total_messages or timeout
+      - Show stats snapshots for both sender and listener
+
+    Notes:
+      - confirm_delivery=False is faster but less strict (messages can be lost if the connection drops).
+      - For correctness-first workloads, set confirm_delivery=True.
+    """
+
+    if AsyncSender is None or AsyncListener is None:
+        raise RuntimeError("Async support not installed. Install with: pip install rabbit-mq-client[async]")
+
+    if total_messages <= 0:
+        logger.info("Async throughput: nothing to do (total_messages=%d)", total_messages)
+        return
+
+    def _maybe_stats_snapshot(obj):
+        """Best-effort stats accessor across sync/async implementations."""
+        if hasattr(obj, "stats_snapshot"):
+            return obj.stats_snapshot()
+        if hasattr(obj, "stats"):
+            return getattr(obj, "stats")
+        return "(stats not available)"
+
+    # Used only for waiting in this example.
+    observed_event = asyncio.Event()
+    observed = 0
+
+    async def on_msg(ch, method, properties, body: bytes):
+        """Count observed messages; used to stop after total_messages."""
+        nonlocal observed
+        observed += 1
+        if observed >= total_messages:
+            observed_event.set()
+
+    listener = AsyncListener(
+        message_type=MESSAGE_TYPE,
+        callback=on_msg,
+        connection_params=CONNECTION_PARAMS,
+        prefetch_count=prefetch_count,
+        auto_ack=False,
+        verbose=False,
+        predefined_queue=True,
+    )
+
+    sender = AsyncSender(
+        message_type=MESSAGE_TYPE,
+        connection_params=CONNECTION_PARAMS,
+        confirm_delivery=confirm_delivery,
+        verbose=False,
+    )
+
+    await listener.start()
+    await sender.start()
+
+    sem = asyncio.Semaphore(max(1, concurrency))
+
+    async def _send_one(i: int) -> None:
+        async with sem:
+            await sender.send({"seq": i, "ts": time.time()})
+
+    start = time.time()
+    try:
+        # Fire off tasks; concurrency is bounded by the semaphore.
+        tasks = [asyncio.create_task(_send_one(i)) for i in range(total_messages)]
+        await asyncio.gather(*tasks)
+
+        try:
+            await asyncio.wait_for(observed_event.wait(), timeout=max_wait_seconds)
+        except asyncio.TimeoutError:
+            # Best-effort: we still stop and print stats.
+            pass
+    finally:
+        await listener.stop()
+        await sender.stop()
+
+    elapsed = max(0.001, time.time() - start)
+    logger.info(
+        "Async throughput run: published=%d observed=%d elapsed=%.2fs (%.0f msg/s observed) confirm_delivery=%s concurrency=%d prefetch=%d",
+        total_messages,
+        observed,
+        elapsed,
+        observed / elapsed,
+        confirm_delivery,
+        concurrency,
+        prefetch_count,
+    )
+    logger.info("AsyncSender stats: %s", _maybe_stats_snapshot(sender))
+    logger.info("AsyncListener stats: %s", _maybe_stats_snapshot(listener))
+
+
 # ------------------- High throughput publish + consume example -------------------
+# noinspection PyMissingDocstring
 def high_throughput_publish_and_consume(total_messages: int = 50000, num_workers: int = 4):
     """High-throughput demo: publish N messages and consume them, then print stats.
 
@@ -262,6 +365,7 @@ def high_throughput_publish_and_consume(total_messages: int = 50000, num_workers
     observed = 0
 
     def on_msg(ch, method, properties, body: bytes):
+        """Count observed messages for stop condition."""
         nonlocal observed
         observed += 1
 
@@ -353,10 +457,13 @@ if __name__ == "__main__":
     logging.getLogger("pika").setLevel(logging.WARNING)
 
     parser = argparse.ArgumentParser(description="MQ adapters usage examples")
-    parser.add_argument("action", choices=["sender", "listener", "pool", "throughput", "async", "client", "all"],
-                        nargs="?",
-                        default="all",
-                        help="Which example to run")
+    parser.add_argument(
+        "action",
+        choices=["sender", "listener", "pool", "throughput", "async", "async-throughput", "client", "all"],
+        nargs="?",
+        default="all",
+        help="Which example to run",
+    )
     args = parser.parse_args()
 
 
@@ -384,9 +491,17 @@ if __name__ == "__main__":
             print("Running async example...")
             asyncio.run(async_example(run_seconds=15))
 
-        # if args.action in ("async-pool", "all"):
-        #     print("Running async publisher pool example...")
-        #     asyncio.run(async_publisher_pool_example(run_seconds=15))
+        if args.action in ("async-throughput", "all"):
+            print("Running async high throughput publish+consume example...")
+            asyncio.run(
+                async_high_throughput_publish_and_consume(
+                    total_messages=50000,
+                    concurrency=500,
+                    prefetch_count=1000,
+                    confirm_delivery=False,
+                    max_wait_seconds=30,
+                )
+            )
 
         if args.action in ("client", "all"):
             print("Running client facade example...")
