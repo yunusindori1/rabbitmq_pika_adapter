@@ -20,4 +20,4 @@ except Exception:  # pragma: no cover
 from .client import RabbitMQClient
 
 __all__ = ["Listener", "PublisherPool", "AsyncSender", "AsyncListener", "RabbitMQClient"]
-__version__ = "0.1.0"
+__version__ = "0.1.2"
