@@ -1,6 +1,5 @@
 # Local config/secrets
 /config.yml
-/.env
 
 # JetBrains / PyCharm
 .idea/
