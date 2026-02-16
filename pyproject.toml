@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rabbitmq-pika-adapter"
-version = "0.1.2"
+version = "0.2.0"
 description = "Lightweight RabbitMQ client helpers (blocking/pika) with Sender and Listener utilities."
 readme = "README.md"
 authors = [
