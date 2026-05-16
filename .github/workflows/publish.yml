@@ -39,7 +39,42 @@ jobs:
       - name: Read package version
         id: version
         run: |
-          python -c "import tomllib, pathlib; p=pathlib.Path('pyproject.toml'); d=tomllib.loads(p.read_text(encoding='utf-8')); print('version='+d['project']['version'])" >> $GITHUB_OUTPUT
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import ast
+          import pathlib
+          import tomllib
+
+          pyproject_path = pathlib.Path("pyproject.toml")
+          data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+          project = data["project"]
+          version = project.get("version")
+
+          if version is None:
+              if "version" not in project.get("dynamic", []):
+                  raise KeyError("project.version")
+
+              version_attr = data["tool"]["setuptools"]["dynamic"]["version"]["attr"]
+              module_name, attr_name = version_attr.rsplit(".", 1)
+              module_path = pathlib.Path("src", *module_name.split(".")).with_suffix(".py")
+              if not module_path.exists():
+                  module_path = pathlib.Path("src", *module_name.split("."), "__init__.py")
+              module_ast = ast.parse(module_path.read_text(encoding="utf-8"), filename=str(module_path))
+
+              for node in module_ast.body:
+                  if not isinstance(node, ast.Assign):
+                      continue
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id == attr_name:
+                          version = ast.literal_eval(node.value)
+                          break
+                  if version is not None:
+                      break
+
+          if not isinstance(version, str):
+              raise RuntimeError("Unable to resolve package version from pyproject.toml")
+
+          print(f"version={version}")
+          PY
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
