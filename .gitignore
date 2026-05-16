@@ -1,5 +1,8 @@
 # Local config/secrets
 /config.yml
+.env
+.env.*
+!.env.example
 
 # JetBrains / PyCharm
 .idea/
