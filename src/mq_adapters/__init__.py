@@ -7,7 +7,7 @@ This package intentionally exposes a small API surface:
 - AsyncSender/AsyncListener (async publishing/consuming; requires aio-pika)
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from .sync_adapter import Listener
 from .publisher_pool import PublisherPool

@@ -370,16 +370,16 @@ class AsyncListener:
         predefined_queue_name = self._destination.get("predefined_queue_name")
         queue_durable = bool(self._destination.get("queue_durable", True))
         queue_auto_delete = bool(self._destination.get("queue_auto_delete", False))
+        queue_arguments = (
+                self._destination.get("queue_arguments")
+                or self._destination.get("queue_args")
+                or self._destination.get("queue_declare_arguments")
+        )
 
         if self._predefined_queue and predefined_queue_name:
             # If you redeclare an existing queue in RabbitMQ, the arguments must be equivalent.
             # Allow users to provide optional queue arguments (e.g., x-message-ttl, dead-lettering)
             # via the same message_type mapping used by the sync adapters.
-            queue_arguments = (
-                    self._destination.get("queue_arguments")
-                    or self._destination.get("queue_args")
-                    or self._destination.get("queue_declare_arguments")
-            )
             q = await self._channel.declare_queue(
                 predefined_queue_name,
                 durable=queue_durable,
@@ -387,7 +387,12 @@ class AsyncListener:
                 arguments=queue_arguments,
             )
         else:
-            q = await self._channel.declare_queue("", exclusive=True, auto_delete=True)
+            q = await self._channel.declare_queue(
+                "",
+                exclusive=True,
+                auto_delete=True,
+                arguments=queue_arguments,
+            )
 
         await q.bind(exchange, routing_key=routing_key)
 

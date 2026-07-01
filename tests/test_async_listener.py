@@ -144,6 +144,81 @@ async def test_async_listener_prefetch_and_ack(message_type_map, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_async_listener_transient_queue_uses_queue_arguments(monkeypatch):
+    monkeypatch.setattr(async_adapter, "aio_pika", FakeAioPika())
+    conn = FakeConnection()
+
+    async def factory():
+        return conn
+
+    async def on_msg(ch, method, properties, body: bytes):
+        pass
+
+    listener = async_adapter.AsyncListener(
+        "all_market_events",
+        callback=on_msg,
+        message_type_map={
+            "all_market_events": {
+                "exchange_name": "market_data",
+                "exchange_type": "topic",
+                "routing_key": "tradier.market.events.*",
+                "queue_arguments": {"x-message-ttl": 2000},
+            }
+        },
+        connection_factory=factory,
+        predefined_queue=False,
+    )
+
+    await listener.start()
+
+    name, durable, arguments, exclusive, auto_delete = conn.channel_obj.queue_declared[0]
+    assert name == ""
+    assert durable is False
+    assert arguments == {"x-message-ttl": 2000}
+    assert exclusive is True
+    assert auto_delete is True
+
+    await listener.stop()
+
+
+@pytest.mark.asyncio
+async def test_async_listener_transient_queue_without_queue_arguments_is_unchanged(monkeypatch):
+    monkeypatch.setattr(async_adapter, "aio_pika", FakeAioPika())
+    conn = FakeConnection()
+
+    async def factory():
+        return conn
+
+    async def on_msg(ch, method, properties, body: bytes):
+        pass
+
+    listener = async_adapter.AsyncListener(
+        "mt",
+        callback=on_msg,
+        message_type_map={
+            "mt": {
+                "exchange_name": "ex",
+                "exchange_type": "topic",
+                "routing_key": "rk",
+            }
+        },
+        connection_factory=factory,
+        predefined_queue=False,
+    )
+
+    await listener.start()
+
+    name, durable, arguments, exclusive, auto_delete = conn.channel_obj.queue_declared[0]
+    assert name == ""
+    assert durable is False
+    assert arguments is None
+    assert exclusive is True
+    assert auto_delete is True
+
+    await listener.stop()
+
+
+@pytest.mark.asyncio
 async def test_async_listener_nack_on_exception(message_type_map, monkeypatch):
     monkeypatch.setattr(async_adapter, "aio_pika", FakeAioPika())
     conn = FakeConnection()
