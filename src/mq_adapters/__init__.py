@@ -7,6 +7,8 @@ This package intentionally exposes a small API surface:
 - AsyncSender/AsyncListener (async publishing/consuming; requires aio-pika)
 """
 
+__version__ = "0.2.2"
+
 from .sync_adapter import Listener
 from .publisher_pool import PublisherPool
 
@@ -20,4 +22,3 @@ except Exception:  # pragma: no cover
 from .client import RabbitMQClient
 
 __all__ = ["Listener", "PublisherPool", "AsyncSender", "AsyncListener", "RabbitMQClient"]
-__version__ = "0.1.0"
